@@ -31,15 +31,34 @@ const createActivity = asyncHandler(async (req, res) => {
 const getAllActivities = asyncHandler(async (req, res) => {
   const activities = await Activity.find({
     user: req.user._id,
+  }).sort({ createdAt: -1 }); // Newest first
+
+  return res.status(200).json(
+    new ApiResponse(200, activities, "History fetched successfully")
+  );
+});
+const getActivitiesByRange = asyncHandler(async (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  if (!startDate || !endDate) {
+    throw new ApiError(400, "Start date and End date are required");
+  }
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999); // Include the full end day
+
+  const activities = await Activity.find({
+    user: req.user._id,
+    createdAt: {
+      $gte: start,
+      $lte: end,
+    },
   }).sort({ createdAt: -1 });
 
-  return res
-    .status(200)
-    .json(new ApiResponse(
-        200,
-        activities,
-        "Activities fetched successfully"
-    ));
+  return res.status(200).json(
+    new ApiResponse(200, activities, "Activities fetched for range")
+  );
 });
 
 const deleteActivity = asyncHandler(async (req, res) => {
@@ -130,6 +149,7 @@ const getWeeklyAnalytics = asyncHandler(async (req, res) => {
 export {
     createActivity,
     getAllActivities,
+    getActivitiesByRange,
     deleteActivity,
     getActivitiesByDate,
     getWeeklyAnalytics
