@@ -77,25 +77,56 @@ export default function Analytics() {
     const categoryTotals = {};
     let bestDay = { name: "-", minutes: 0 };
 
-    // Build chartData from backend's date field
-    const chartData = rawData.map((item) => {
-      const d = new Date(item.date);
-      const dayLabel = item.dayLabel || dayNames[d.getDay()];
-      const dateLabel = `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
-      // For UI: dayLabel (Sun), dateLabel (15/02), fullDate (YYYY-MM-DD)
-      totalMinutes += item.totalDayMinutes;
+    // Helper: Convert UTC date string to local YYYY-MM-DD string
+    function getLocalDateString(utcDateStr) {
+      const utc = new Date(utcDateStr);
+      // Get local date parts
+      const year = utc.getFullYear();
+      const month = utc.getMonth();
+      const day = utc.getDate();
+      // Create a local date at midnight
+      const local = new Date(Date.UTC(year, month, day, 0, 0, 0));
+      // Shift to local timezone
+      local.setMinutes(local.getMinutes() + local.getTimezoneOffset());
+      // Format as YYYY-MM-DD
+      return local.toISOString().slice(0, 10);
+    }
+
+    // Group items by local date
+    const grouped = {};
+    rawData.forEach((item) => {
+      const localDate = getLocalDateString(item.date);
+      if (!grouped[localDate]) {
+        grouped[localDate] = {
+          categories: {},
+          totalDayMinutes: 0,
+          date: localDate,
+        };
+      }
       Object.entries(item.categories).forEach(([cat, min]) => {
+        grouped[localDate].categories[cat] = (grouped[localDate].categories[cat] || 0) + min;
         categoryTotals[cat] = (categoryTotals[cat] || 0) + min;
         totalSessions += 1;
       });
-      return {
-        dayLabel,
-        dateLabel,
-        fullDate: item.date,
-        categories: item.categories,
-        totalDayMinutes: item.totalDayMinutes,
-      };
+      grouped[localDate].totalDayMinutes += item.totalDayMinutes;
+      totalMinutes += item.totalDayMinutes;
     });
+
+    // Build chartData sorted by date ascending
+    const chartData = Object.keys(grouped)
+      .sort()
+      .map((dateStr) => {
+        const d = new Date(dateStr + "T00:00:00");
+        const dayLabel = dayNames[d.getDay()];
+        const dateLabel = `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+        return {
+          dayLabel,
+          dateLabel,
+          fullDate: dateStr,
+          categories: grouped[dateStr].categories,
+          totalDayMinutes: grouped[dateStr].totalDayMinutes,
+        };
+      });
 
     // Calculate Best Day
     chartData.forEach((day) => {
