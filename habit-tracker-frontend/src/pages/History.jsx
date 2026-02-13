@@ -56,7 +56,10 @@ export default function History() {
     queryFn: async () => {
       // We fetch all and filter client-side for instant UI updates
       const res = await api.get("/activities");
-      return res.data.data;
+      // return res.data.data;
+      return res.data.data.filter(
+        (a) => new Date(a.createdAt).toLocaleString() === today,
+      );
     },
   });
 

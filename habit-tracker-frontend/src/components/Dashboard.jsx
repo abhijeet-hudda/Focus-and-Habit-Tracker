@@ -96,7 +96,7 @@ export default function Dashboard() {
       const res = await api.get("/activities");
       const today = new Date().toDateString();
       return res.data.data.filter(
-        (a) => new Date(a.createdAt).toDateString() === today,
+        (a) => new Date(a.createdAt).toLocaleString() === today,
       );
     },
   });
