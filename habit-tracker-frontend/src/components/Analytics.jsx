@@ -77,19 +77,15 @@ export default function Analytics() {
     const categoryTotals = {};
     let bestDay = { name: "-", minutes: 0 };
 
-    // Helper: Convert UTC date string to local YYYY-MM-DD string
+    // Helper: Get local date string (YYYY-MM-DD) from UTC date string, using user's local time
     function getLocalDateString(utcDateStr) {
-      const utc = new Date(utcDateStr);
-      // Get local date parts
-      const year = utc.getFullYear();
-      const month = utc.getMonth();
-      const day = utc.getDate();
-      // Create a local date at midnight
-      const local = new Date(Date.UTC(year, month, day, 0, 0, 0));
-      // Shift to local timezone
-      local.setMinutes(local.getMinutes() + local.getTimezoneOffset());
+      const d = new Date(utcDateStr);
+      // Use local year, month, day
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const day = d.getDate();
       // Format as YYYY-MM-DD
-      return local.toISOString().slice(0, 10);
+      return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     }
 
     // Group items by local date
