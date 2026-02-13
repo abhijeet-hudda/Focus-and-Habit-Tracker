@@ -29,9 +29,17 @@ const createActivity = asyncHandler(async (req, res) => {
 });
 
 const getAllActivities = asyncHandler(async (req, res) => {
-  const activities = await Activity.find({
-    user: req.user._id,
-  }).sort({ createdAt: -1 }); // Newest first
+  const { category } = req.query;
+
+  // Build the query object
+  const query = { user: req.user._id };
+  
+  // If a category is provided (and not "All"), filter by it
+  if (category && category !== "All") {
+    query.category = category;
+  }
+
+  const activities = await Activity.find(query).sort({ createdAt: -1 });
 
   return res.status(200).json(
     new ApiResponse(200, activities, "History fetched successfully")

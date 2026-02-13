@@ -148,25 +148,53 @@ function ColoredSphere({ data, hoveredCategory, setHoveredCategory }) {
 
 export default function ThreeSphere({ data }) {
   const [hovered, setHovered] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [minTimePassed, setMinTimePassed] = useState(false);
+  const canvasKey = useMemo(() => JSON.stringify(data), [data]);
+
+  // Always show loader for at least 2s, or until ready
+  useEffect(() => {
+    setReady(false);
+    setMinTimePassed(false);
+    let didCancel = false;
+    const minTimer = setTimeout(() => {
+      if (!didCancel) setMinTimePassed(true);
+    }, 2000);
+    // Simulate render complete after 400ms (replace with onCreated for real readiness)
+    const fakeReady = setTimeout(() => {
+      if (!didCancel) setReady(true);
+    }, 400);
+    return () => {
+      didCancel = true;
+      clearTimeout(minTimer);
+      clearTimeout(fakeReady);
+    };
+  }, [data]);
+
+  const showSphere = ready && minTimePassed;
 
   return (
-    <div className="relative h-137.5 w-full rounded-2xl overflow-hidden bg-black">
-      <Canvas camera={{ position: [0, 0, 6], fov: 60 }}>
-        {/* Improved Lighting Setup */}
-        <ambientLight intensity={1.4} />
-        <directionalLight position={[5, 5, 5]} intensity={1.2} />
-        <directionalLight position={[-5, -3, -5]} intensity={0.6} />
-
-        <OrbitControls enableZoom={false} enablePan={false} />
-
-        <ColoredSphere
-          data={data}
-          hoveredCategory={hovered}
-          setHoveredCategory={setHovered}
-        />
-      </Canvas>
-      PREMIUM TOOLTIP
-      {hovered && (
+    <div className="relative h-80 w-full rounded-2xl overflow-hidden bg-black">
+      {!showSphere && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/80">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2" />
+          <span className="text-white text-sm">Loading visualization...</span>
+        </div>
+      )}
+      {showSphere && (
+        <Canvas key={canvasKey} camera={{ position: [0, 7, 4], fov: 40 }}>
+          <ambientLight intensity={1.4} />
+          <directionalLight position={[5, 5, 5]} intensity={1.2} />
+          <directionalLight position={[-5, -3, -5]} intensity={0.6} />
+          <OrbitControls enableZoom={false} enablePan={false} />
+          <ColoredSphere
+            data={data}
+            hoveredCategory={hovered}
+            setHoveredCategory={setHovered}
+          />
+        </Canvas>
+      )}
+      {hovered && showSphere && (
         <div
           className="absolute w-50 bottom-8 left-1/2 -translate-x-1/2
                       bg-zinc-900/80 backdrop-blur-xl

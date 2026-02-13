@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import api from "../api/axiosInstance";
 import ThreeSphere from "./ThreeSphere";
+import { useNavigate } from "react-router-dom";
 
 // Helper to format minutes into "2h 30m"
 const formatTime = (minutes) => {
@@ -54,6 +55,9 @@ const StatCard = ({ title, value, subtext, icon: Icon, colorClass, delay }) => (
 );
 
 export default function Analytics() {
+  // State for selected day/week
+  const [selected, setSelected] = useState("Weekly");
+  const navigate = useNavigate();
   const { data: rawData, isLoading } = useQuery({
     queryKey: ["analytics"],
     queryFn: async () => {
@@ -147,16 +151,54 @@ export default function Analytics() {
     );
   }
 
-  const demodata = {
-      categories: {
-        Study: 60,
-        Exercise: 55,
-        Work: 30,
-        Other: 45,
-        Break: 27,
-      },
-      totalDayMinutes: 217,
+  // Prepare day options with dates, starting from last Saturday to today
+  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const today = new Date();
+  // Build last 7 days ending with today
+  const dayOptions = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dayLabel = dayNames[d.getDay()];
+    const dateLabel = `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+    dayOptions.push({
+      key: `${dayLabel}-${dateLabel}`,
+      label: `${dayLabel} (${dateLabel})`,
+      rawDay: dayLabel,
+      date: d,
+    });
+  }
+  dayOptions.push({ key: "Weekly", label: "Weekly", rawDay: "Weekly" });
+
+  // Filtered data for ThreeSphere
+  let filteredData = null;
+  if (stats?.chartData) {
+    if (selected === "Weekly") {
+      // Cumulative for all 7 days
+      const categories = {};
+      let totalDayMinutes = 0;
+      stats.chartData.forEach((day) => {
+        Object.entries(day.categories).forEach(([cat, min]) => {
+          categories[cat] = (categories[cat] || 0) + min;
+        });
+        totalDayMinutes += day.totalDayMinutes;
+      });
+      filteredData = { categories, totalDayMinutes };
+    } else {
+      // Find selected day by key
+      const selectedDayObj = dayOptions.find((opt) => opt.key === selected);
+      if (selectedDayObj) {
+        const day = stats.chartData.find(
+          (d) => d.dayLabel === selectedDayObj.rawDay,
+        );
+        filteredData = day
+          ? { categories: day.categories, totalDayMinutes: day.totalDayMinutes }
+          : null;
+      } else {
+        filteredData = null;
+      }
     }
+  }
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-10">
@@ -221,21 +263,21 @@ export default function Analytics() {
           transition={{ delay: 0.4 }}
           className="lg:col-span-2 bg-card border border-border rounded-3xl p-6 shadow-md flex flex-col"
         >
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-primary" />
-                Weekly Flow
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Visualized in 3D Space
-              </p>
-            </div>
+          {/* Day/Weekly Selector */}
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            {dayOptions.map((opt) => (
+              <button
+                key={opt.key}
+                className={`px-3 py-1 rounded-full border text-sm font-medium transition-colors ${selected === opt.key ? "bg-primary text-white border-primary" : "bg-secondary text-foreground border-border hover:bg-primary/10"}`}
+                onClick={() => setSelected(opt.key)}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
-
           <div className="flex-1 min-h-100 relative bg-secondary/10 rounded-2xl overflow-hidden">
-            {stats?.chartData?.length > 0 ? (
-              <ThreeSphere data={demodata} />
+            {filteredData ? (
+              <ThreeSphere data={filteredData} />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground opacity-50">
                 <BarChart3 className="w-12 h-12 mb-2" />
@@ -343,7 +385,10 @@ export default function Analytics() {
             <Calendar className="w-5 h-5 text-blue-400" />
             Daily Breakdown
           </h2>
-          <button className="text-xs text-primary hover:underline flex items-center gap-1">
+          <button
+            onClick={() => navigate("/history")}
+            className="text-xs text-primary hover:underline flex items-center gap-1"
+          >
             View All History <ArrowUpRight className="w-3 h-3" />
           </button>
         </div>

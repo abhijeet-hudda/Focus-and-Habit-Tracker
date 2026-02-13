@@ -108,3 +108,22 @@
 .neon-glow {
   box-shadow: 0 0 10px hsla(160, 84%, 39%, 0.5);
 }
+
+
+/* Custom Dark Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px; /* Thin and subtle */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; /* Invisible track */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--secondary)); /* Matches your card borders/secondary inputs */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground)); /* Slightly lighter on hover */
+}
