@@ -77,19 +77,20 @@ export default function Analytics() {
     const categoryTotals = {};
     let bestDay = { name: "-", minutes: 0 };
 
-    // Helper: Get local date string (YYYY-MM-DD) from UTC date string, using user's local time
-    function getLocalDateString(utcDateStr) {
-      const d = new Date(utcDateStr); // parses as UTC, but .getFullYear() etc. are local
+    // Helper: Get local date string (YYYY-MM-DD) from UTC timestamp, using user's local time
+    function getLocalDateStringFromTimestamp(utcTimestamp) {
+      const d = new Date(utcTimestamp);
       const year = d.getFullYear();
       const month = d.getMonth() + 1;
       const day = d.getDate();
       return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     }
 
-    // Group items by local date
+    // Group items by local date using createdAt timestamp
     const grouped = {};
     rawData.forEach((item) => {
-      const localDate = getLocalDateString(item.date);
+      // Use item.createdAt if available, else fallback to item.date
+      const localDate = getLocalDateStringFromTimestamp(item.createdAt || item.date);
       if (!grouped[localDate]) {
         grouped[localDate] = {
           categories: {},
