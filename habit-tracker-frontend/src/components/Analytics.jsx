@@ -79,12 +79,10 @@ export default function Analytics() {
 
     // Helper: Get local date string (YYYY-MM-DD) from UTC date string, using user's local time
     function getLocalDateString(utcDateStr) {
-      const d = new Date(utcDateStr);
-      // Use local year, month, day
+      const d = new Date(utcDateStr); // parses as UTC, but .getFullYear() etc. are local
       const year = d.getFullYear();
       const month = d.getMonth() + 1;
       const day = d.getDate();
-      // Format as YYYY-MM-DD
       return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     }
 
