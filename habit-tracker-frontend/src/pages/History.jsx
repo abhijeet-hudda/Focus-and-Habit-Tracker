@@ -57,9 +57,7 @@ export default function History() {
       // We fetch all and filter client-side for instant UI updates
       const res = await api.get("/activities");
       // return res.data.data;
-      return res.data.data.filter(
-        (a) => new Date(a.createdAt).toLocaleString() === today,
-      );
+      return res.data.data;
     },
   });
 
