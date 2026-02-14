@@ -1,412 +1,319 @@
-# 🎯 Focus & Habit Tracker  
+
+# 🎯 Focus & Habit Tracker
 ## UI Wireframe & Design Planning Reference
 
 ---
 
-# 🎯 Focus & Habit Tracker
----
+## 1. 🖼️ User Flow & Navigation Structure
 
-## 🖼️ Wireframe & UI Planning Reference
-
----
-
-
-### 🧭 User Flow Overview
+### 🧭 Global Navigation Path
+This diagram represents the high-level navigation path and access control for the application.
 
 ```mermaid
 flowchart TD
-   A[Landing Page] --> B[Sign Up / Login]
-   B --> C[Dashboard (Daily Log Section)]
-   C --> D[History View]
-   D --> E[Analytics View (Three.js Visualization)]
-   subgraph Protected Routes
-      C
-      D
-      E
-   end
+    Landing[Landing Page] --> Check{Has Account?}
+    Check -- No --> Signup[Sign Up Page]
+    Check -- Yes --> Login[Login Page]
+    
+    Signup --> Login
+    Login --> Auth{Verify Credentials}
+    
+    Auth -- Success --> Dash[Dashboard (Daily Log)]
+    Auth -- Fail --> Error[Show Error Toast]
+
+    subgraph Protected App Shell
+        Dash <--> History[History View]
+        History <--> Analytics[Analytics View]
+    end
+
+    Dash --> Logout[Logout Action]
+    Logout --> Login
+
 ```
 
-- Smooth navigation, protected routes, and micro-product structure.
-
 ---
 
-### 🔐 Authentication Flow
+## 2. 🔐 Authentication & Data Lifecycle
 
-**Pages:**
-- `/signup`
-- `/login`
-- `/dashboard` (protected)
+### 🔄 Auth Sequence
 
-**Flow:**
-1. User lands on Login page.
-2. If new → clicks "Create Account".
-3. After authentication:
-   - JWT stored in httpOnly cookie
-   - Redirect to Dashboard
-4. Protected routes verify token before rendering.
+The following flow describes how user credentials and tokens are handled between the client and server.
 
----
-
-### 🖥️ Wireframe Layouts (Low Fidelity)
-
-
-#### Login & Signup Flow
 ```mermaid
-flowchart TD
-  L[Login Page] --> S[Signup Page]
-  S --> D[Dashboard]
-  D --> H[History View]
-  H --> A[Analytics View]
-  subgraph Main Navigation
-    D
-    H
-    A
-  end
-```
-- Minimal dark theme, smooth fade-in, validation errors below inputs.
+sequenceDiagram
+    actor User
+    participant FE as Frontend (React)
+    participant BE as Backend (Express)
+    participant DB as MongoDB
 
-#### Signup Page
-```
-┌─────────────────────────────┐
-│     Create Account         │
-│────────────────────────────│
-│   [ Name Input ]           │
-│   [ Email Input ]          │
-│   [ Password Input ]       │
-│                           │
-│     ( Register )           │
-│                           │
-│ Already have account? Login│
-└─────────────────────────────┘
-```
-- Real-time validation, password strength indicator, success toast.
+    User->>FE: Enters Email & Password
+    FE->>BE: POST /api/auth/login
+    BE->>DB: Find User & Compare Hash
+    alt Invalid Credentials
+        DB-->>BE: null
+        BE-->>FE: 401 Unauthorized
+        FE-->>User: Show Error Toast
+    else Valid Credentials
+        DB-->>BE: User Object
+        BE->>BE: Generate JWT
+        BE-->>FE: Set httpOnly Cookie + User Data
+        FE->>FE: Update Global Auth State
+        FE->>User: Redirect to Dashboard
+    end
 
+```
 
-#### Dashboard & Activity Flow
+---
+
+## 3. 🖥️ UI Wireframes & Logic
+
+### 3.1 Signup & Registration
+
+**Goal:** Minimalist entry with real-time feedback.
+
+#### 🎨 UI Layout
+
+```text
++------------------------------------------+
+|            Create Account                |
+|------------------------------------------|
+|        [ Name Input ]                    |
+|        [ Email Input ]                   |
+|        [ Password Input ]                |
+|                                          |
+|  [Strength: ●●●○○ Moderate]              |
+|                                          |
+|            ( Register )                  |
+|                                          |
+|    Already have an account? Login        |
++------------------------------------------+
+
+```
+
+#### ⚙️ Logic Flow
+
 ```mermaid
-flowchart TD
-  DA[Dashboard] --> AA[Add Activity]
-  AA --> TL[Today's Logs]
-  TL --> H[History View]
-  H --> A[Analytics View]
+flowchart LR
+    Input[User Input] --> Validate{Client Validation}
+    Validate -- Invalid --> Error[Show Inline Error]
+    Validate -- Valid --> Submit[Enable Button]
+    Submit --> API[POST /signup]
+    API --> Success[Toast Notification]
+    Success --> Redirect[Go to Login]
+
 ```
-- Smooth list animation, instant UI update, color badges.
-
-
-#### History Calendar Flow
-```mermaid
-flowchart TD
-  MC[Monthly Calendar] --> CD[Clicked Date]
-  CD --> ED[Entries Display]
-  ED --> H[History View]
-  H --> A[Analytics View]
-```
-- Click animation, expand/collapse logs, highlight days.
-
-
-#### Analytics Visualization Flow
-```mermaid
-flowchart TD
-  WO[Weekly Overview] --> BG[Bar Graph Canvas]
-  BG --> D[Days]
-  D --> C[Category Colors]
-```
-- Bars represent total duration, colors for category, animated upward.
 
 ---
 
-### 🎨 UI Theme Planning
+### 3.2 Dashboard (Daily Log Section)
 
-- Dark Productivity UI
-- Color Palette:
-  - Background: #0f172a
-  - Card: #1e293b
-  - Primary: #3b82f6
-  - Work: teal
-  - Study: blue
-  - Exercise: orange
-  - Break: pink
-  - Other: gray
-- Typography: Clean sans-serif, bold headers
+**Goal:** Quick data entry and immediate feedback.
 
----
+#### 🎨 UI Layout
 
-### 🔄 State & Data Flow
-
-- React Context/Zustand for auth
-- Axios for API
-- Express REST API, JWT, MongoDB
-- User Action → API → DB → UI
-- Analytics → Aggregated Query → Three.js Mapping
-
----
-
-### 📊 Analytics Calculation Logic
-
-- Weekly analytics: total duration per day, category distribution
-- Group logs by date, sum duration, map to bar heights
-- Animate bars using Three.js
-- Height formula: `barHeight = (duration / maxDurationOfWeek) * MAX_BAR_HEIGHT`
-
----
-
-### 🏗️ Project Structure
-
-frontend/
-  pages/
-    Login.jsx
-    Signup.jsx
-    Dashboard.jsx
-    History.jsx
-    Analytics.jsx
-  components/
-    Navbar.jsx
-    ActivityForm.jsx
-    ActivityList.jsx
-    CalendarView.jsx
-    ThreeBarChart.jsx
-
-backend/
-  routes/
-    auth.routes.js
-    log.routes.js
-  controllers/
-  models/
-  middleware/
-
----
-
-### 🚀 Interaction & Animation
-
-- Button hover transitions
-- Smooth add/delete animations
-- Expand history sections
-- Three.js bar animation on load
-- Fade transitions between routes
-
----
-
-### 📌 Assumptions & Decisions
-
-- Time stored in UTC
-- Weekly analytics starts from Sunday
-- No orbit controls in Three.js
-- JWT stored in httpOnly cookie
-- Fully responsive layout
-
----
-
-### 🎯 Design Goals
-
-- Structured SaaS product
-- Data-driven, animated, interactive
-- Clean engineering separation
-- Production-ready micro-product
-
----
-
-+--------------------------------------+
-|            Create Account            |
-|--------------------------------------|
-|            [ Name Input ]            |
-|            [ Email Input ]           |
-|            [ Password Input ]        |
-|                                      |
-|              ( Register )            |
-|                                      |
-|      Already have account? Login     |
-+--------------------------------------+
-
-UX:
-- Real-time validation
-- Password strength indicator
-- Success toast notification
-
----
-
-## 🔹 3.3 Dashboard (Daily Log Section)
-
+```text
 +------------------------------------------------------+
-| Logo | Dashboard | History | Analytics | Logout     |
+| Logo | Dashboard | History | Analytics | Logout      |
 |------------------------------------------------------|
 |  Add Activity                                        |
 |  --------------------------------------------------  |
-|  [ Activity Name ] [ Duration ] [ Category ▼ ]      |
+|  [ Activity Name ] [ Duration (m) ] [ Category ▼ ]   |
 |                      ( Add Entry )                   |
 |                                                      |
-|  Today's Logs                                       |
+|  Today's Logs                                        |
 |  --------------------------------------------------  |
-|  Work - 120 min     [ Delete ]                      |
-|  Study - 60 min     [ Delete ]                      |
+|  🟢 Work - 120 min       [ Delete ]                  |
+|  🔵 Study - 60 min       [ Delete ]                  |
+|  🟠 Exercise - 45 min    [ Delete ]                  |
 +------------------------------------------------------+
 
-UX:
-- Smooth list animation on add/delete
-- Instant UI update
-- Duration validation
-- Category color badges
+```
+
+#### ⚙️ Data Flow
+
+```mermaid
+flowchart TD
+    UserAction[Click Add Entry] --> StateUpdate[Optimistic UI Update]
+    StateUpdate --> API[POST /api/logs]
+    API --> DB[(MongoDB)]
+    
+    DB -- Success --> Confirm[Keep UI State]
+    DB -- Fail --> Revert[Revert UI & Show Error]
+
+```
 
 ---
 
-## 🔹 3.4 History View (Calendar-Based)
+### 3.3 History View (Calendar-Based)
 
+**Goal:** Visualizing consistency over time.
+
+#### 🎨 UI Layout
+
+```text
 +------------------------------------------------------+
-| Logo | Dashboard | History | Analytics | Logout     |
+| Logo | Dashboard | History | Analytics | Logout      |
 |------------------------------------------------------|
-|                 Monthly Calendar                     |
+|                  Monthly Calendar                    |
 |  --------------------------------------------------  |
-|  [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ]                |
+|  [ < ]       February 2026       [ > ]               |
 |                                                      |
-|  Clicked Date → Entries Display Below               |
+|  [ 1 ][ 2 ][ 3 ][ 4 ][ 5 ][ 6 ][ 7 ]                 |
+|  [ 8 ][ 9 ][10 ][11 ][12 ][13 ][14 ]                 |
 |                                                      |
-|  12 Feb                                              |
-|  Work - 90 min                                       |
-|  Exercise - 30 min                                   |
+|  Clicked Date (Feb 12) → Entries Display Below       |
+|  --------------------------------------------------  |
+|  🟢 Work - 90 min                                    |
+|  🟠 Exercise - 30 min                                |
 +------------------------------------------------------+
 
-UX:
-- Click animation on date
-- Expand/collapse day logs
-- Highlight days with activity
+```
+
+#### ⚙️ Interaction Flow
+
+```mermaid
+flowchart TD
+    PageLoad --> FetchMonth[Fetch Month Data]
+    FetchMonth --> RenderCal[Render Calendar Grid]
+    RenderCal --> UserClick[User Clicks Date]
+    UserClick --> Filter[Filter Logs by Date]
+    Filter --> Display[Show Daily Summary List]
+
+```
 
 ---
 
-## 🔹 3.5 Analytics View (Three.js Visualization)
+### 3.4 Analytics View (3D Visualization)
 
+**Goal:** High-level overview of weekly performance using Three.js.
+
+#### 🎨 UI Layout
+
+```text
 +------------------------------------------------------+
-| Logo | Dashboard | History | Analytics | Logout     |
+| Logo | Dashboard | History | Analytics | Logout      |
 |------------------------------------------------------|
 |                Weekly Overview                       |
 |                                                      |
-|        [ Three.js 3D Bar Graph Canvas ]             |
+|        [ Three.js 3D Bar Graph Canvas ]              |
+|          (Bars animate upwards on load)              |
 |                                                      |
-|     Mon   Tue   Wed   Thu   Fri   Sat   Sun         |
+|      Mon   Tue   Wed   Thu   Fri   Sat   Sun       |
+|                                                      |
+|      Total Hours: 32.5   |   Top Category: Work      |
 +------------------------------------------------------+
 
-Visualization Logic:
-- Bars represent total duration per day
-- Colors represent category dominance
-- Bars animate upward on mount
-- Data fetched from API (no hardcoded values)
+```
+
+#### ⚙️ Visualization Logic
+
+```mermaid
+flowchart TD
+    Start[Component Mount] --> Fetch[Fetch Weekly Logs]
+    Fetch --> Process[Aggregate Data]
+    
+    subgraph Data Processing
+    Process --> Group[Group by Day]
+    Group --> Sum[Sum Durations]
+    Sum --> Normalize[Normalize 0-1 Scale]
+    end
+    
+    Normalize --> Render[Three.js Canvas]
+    Render --> Animate[Animate scale.y 0 -> 1]
+
+```
 
 ---
 
-# 🎨 4. UI Theme Planning
+## 4. 🎨 UI Theme Planning
 
-Theme: Dark Productivity UI
+**Theme:** Dark Productivity UI
 
-Color Palette:
-- Background: #0f172a
-- Card: #1e293b
-- Primary: #3b82f6
-- Work: teal
-- Study: blue
-- Exercise: orange
-- Break: pink
-- Other: gray
+**Color Palette:**
 
-Typography:
-- Clean sans-serif
-- Clear hierarchy
-- Bold section headers
+* **Background:** `#0f172a` (Slate 900)
+* **Card/Surface:** `#1e293b` (Slate 800)
+* **Primary Action:** `#3b82f6` (Blue 500)
+* **Text Main:** `#f8fafc` (Slate 50)
+* **Text Muted:** `#94a3b8` (Slate 400)
 
----
+**Category Colors:**
 
-# 🔄 5. State & Data Flow Planning
-
-Frontend:
-- React Context / Zustand for auth state
-- Axios for API calls
-- ProtectedRoute wrapper
-
-Backend:
-- Express REST API
-- JWT Authentication
-- MongoDB persistent storage
-
-Data Flow:
-
-User Action → API → Database  
-Database → API Response → Frontend State → UI Render  
-Analytics → Aggregated Query → Three.js Mapping  
+* 🟢 **Work:** `#10b981` (Emerald)
+* 🔵 **Study:** `#3b82f6` (Blue)
+* 🟠 **Exercise:** `#f59e0b` (Amber)
+* 🌸 **Break:** `#ec4899` (Pink)
+* ⚪ **Other:** `#64748b` (Slate)
 
 ---
 
-# 📊 6. Analytics Calculation Logic (Planning)
+## 5. 📊 Analytics Calculation Logic
 
-Weekly Analytics Includes:
+**Objective:** Map raw duration data to 3D bar heights.
 
-1. Total duration per day
-2. Category distribution per week
+1. **Input:** Array of logs from `startOfWeek` to `endOfWeek`.
+2. **Processing:**
+* Group logs by date.
+* Sum `duration` for each date.
+* Find `maxDuration` in the current week.
 
-Process:
 
-1. Fetch logs from startOfWeek → endOfWeek
-2. Group by date
-3. Sum duration
-4. Map values to bar heights
-5. Animate using Three.js scale.y
-
-Height Formula:
-
-barHeight = (duration / maxDurationOfWeek) * MAX_BAR_HEIGHT
+3. **Formula for 3D Height:**
 
 ---
 
-# 🏗️ 7. Project Structure Planning
+## 6. 🏗️ Project Structure
 
+```text
 frontend/
-  pages/
-    Login.jsx
-    Signup.jsx
-    Dashboard.jsx
-    History.jsx
-    Analytics.jsx
-  components/
-    Navbar.jsx
-    ActivityForm.jsx
-    ActivityList.jsx
-    CalendarView.jsx
-    ThreeBarChart.jsx
+  src/
+    ├── assets/
+    ├── components/
+    │   ├── Navbar.jsx
+    │   ├── ActivityForm.jsx
+    │   ├── ActivityList.jsx
+    │   ├── CalendarView.jsx
+    │   ├── ThreeBarChart.jsx
+    │   └── ProtectedRoute.jsx
+    ├── pages/
+    │   ├── Login.jsx
+    │   ├── Signup.jsx
+    │   ├── Dashboard.jsx
+    │   ├── History.jsx
+    │   └── Analytics.jsx
+    ├── context/
+    │   └── AuthContext.jsx
+    ├── services/
+    │   └── api.js
+    └── App.jsx
 
 backend/
-  routes/
-    auth.routes.js
-    log.routes.js
-  controllers/
-  models/
-  middleware/
+  ├── config/
+  │   └── db.js
+  ├── controllers/
+  │   ├── authController.js
+  │   └── logController.js
+  ├── models/
+  │   ├── User.js
+  │   └── Log.js
+  ├── routes/
+  │   ├── authRoutes.js
+  │   └── logRoutes.js
+  ├── middleware/
+  │   └── authMiddleware.js
+  └── server.js
+
+```
 
 ---
 
-# 🚀 8. Interaction & Animation Planning
+## 7. 🎯 Design Goals Checklist
 
-- Button hover transitions
-- Smooth add/delete animations
-- Expand history sections
-- Three.js bar animation on load
-- Fade transitions between routes
+* [ ] **Structured SaaS product:** Clean separation of concerns.
+* [ ] **Data-driven:** Every UI element reflects real database state.
+* [ ] **Animated & Interactive:** Smooth transitions and 3D elements.
+* [ ] **Production-ready:** Secure auth, validation, and error handling.
 
----
+```
 
-# 📌 9. Assumptions & Decisions
-
-- Time stored in UTC
-- Weekly analytics starts from Sunday
-- No orbit controls in Three.js
-- JWT stored in httpOnly cookie
-- Fully responsive layout
-
----
-
-# 🎯 Goal of This Design
-
-The goal is to make the application feel like:
-
-✔ A structured SaaS product  
-✔ Data-driven  
-✔ Animated and interactive  
-✔ Clean engineering separation  
-✔ Production-ready micro-product  
-
----
+```
