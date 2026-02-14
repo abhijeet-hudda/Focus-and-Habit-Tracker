@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import gsap from "gsap";
@@ -14,17 +14,19 @@ const CATEGORY_COLORS = {
 
 function ColoredSphere({ data, hoveredCategory, setHoveredCategory }) {
   const meshRef = useRef();
-  const { camera, raycaster, mouse } = useThree();
+  const { invalidate } = useThree();
+  const animationRef = useRef();
 
   const { geometry, ranges, totalMinutes } = useMemo(() => {
-    const sphere = new THREE.SphereGeometry(2, 128, 128).toNonIndexed();
+    // ✅ Smooth appearance
+    const sphere = new THREE.SphereGeometry(2, 96, 96).toNonIndexed();
 
     const categories = Object.entries(data.categories || {});
     const total = categories.reduce((sum, [, m]) => sum + m, 0);
 
     let currentAngle = 0;
     const computedRanges = categories.map(([cat, minutes]) => {
-      const angleSize = (minutes / total) * Math.PI * 2;
+      const angleSize = total ? (minutes / total) * Math.PI * 2 : 0;
       const start = currentAngle;
       const end = currentAngle + angleSize;
       currentAngle += angleSize;
@@ -32,7 +34,7 @@ function ColoredSphere({ data, hoveredCategory, setHoveredCategory }) {
     });
 
     const positionAttr = sphere.attributes.position;
-    const colors = [];
+    const colors = new Float32Array(positionAttr.count * 3);
 
     for (let i = 0; i < positionAttr.count; i++) {
       const x = positionAttr.getX(i);
@@ -41,70 +43,52 @@ function ColoredSphere({ data, hoveredCategory, setHoveredCategory }) {
       let angle = Math.atan2(z, x);
       if (angle < 0) angle += Math.PI * 2;
 
-      let color = new THREE.Color("#666");
+      let color = new THREE.Color("#444");
 
       for (const range of computedRanges) {
         if (angle >= range.start && angle < range.end) {
-          color = new THREE.Color(CATEGORY_COLORS[range.cat]);
+          color.set(CATEGORY_COLORS[range.cat]);
           break;
         }
       }
 
-      colors.push(color.r, color.g, color.b);
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
     }
 
-    sphere.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    sphere.setAttribute("color", new THREE.BufferAttribute(colors, 3));
 
     return { geometry: sphere, ranges: computedRanges, totalMinutes: total };
   }, [data]);
 
   // Entrance animation
   useEffect(() => {
-    if (meshRef.current) {
-      meshRef.current.scale.set(0, 0, 0);
-      gsap.to(meshRef.current.scale, {
-        x: 1,
-        y: 1,
-        z: 1,
-        duration: 1.2,
-        ease: "power3.out",
-      });
-    }
-  }, []);
-
-  // Hover detection
-  useFrame(() => {
     if (!meshRef.current) return;
 
-    raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObject(meshRef.current);
+    meshRef.current.scale.set(0, 0, 0);
 
-    if (intersects.length > 0) {
-      const point = intersects[0].point;
-      let angle = Math.atan2(point.z, point.x);
-      if (angle < 0) angle += Math.PI * 2;
+    animationRef.current = gsap.to(meshRef.current.scale, {
+      x: 1,
+      y: 1,
+      z: 1,
+      duration: 0.8,
+      ease: "power3.out",
+      onUpdate: invalidate,
+    });
 
-      for (const range of ranges) {
-        if (angle >= range.start && angle < range.end) {
-          setHoveredCategory({
-            ...range,
-            percentage: ((range.minutes / totalMinutes) * 100).toFixed(1),
-          });
-          return;
-        }
-      }
-    }
+    return () => {
+      animationRef.current?.kill();
+      geometry.dispose();
+    };
+  }, [geometry, invalidate]);
 
-    setHoveredCategory(null);
-  });
-
-  // Darken hovered section
+  // Hover darkening (optimized)
   useEffect(() => {
     if (!meshRef.current) return;
 
-    const geometry = meshRef.current.geometry;
-    const positionAttr = geometry.attributes.position;
     const colorAttr = geometry.attributes.color;
+    const positionAttr = geometry.attributes.position;
 
     for (let i = 0; i < positionAttr.count; i++) {
       const x = positionAttr.getX(i);
@@ -113,14 +97,15 @@ function ColoredSphere({ data, hoveredCategory, setHoveredCategory }) {
       let angle = Math.atan2(z, x);
       if (angle < 0) angle += Math.PI * 2;
 
-      let color = new THREE.Color("#666");
+      let color = new THREE.Color("#444");
 
       for (const range of ranges) {
         if (angle >= range.start && angle < range.end) {
-          color = new THREE.Color(CATEGORY_COLORS[range.cat]);
+          color.set(CATEGORY_COLORS[range.cat]);
 
+          // ✅ Darker on hover
           if (hoveredCategory?.cat === range.cat) {
-            color.multiplyScalar(0.65);
+            color.multiplyScalar(0.55);
           }
 
           break;
@@ -131,16 +116,38 @@ function ColoredSphere({ data, hoveredCategory, setHoveredCategory }) {
     }
 
     colorAttr.needsUpdate = true;
-  }, [hoveredCategory, ranges]);
+    invalidate();
+  }, [hoveredCategory, ranges, geometry, invalidate]);
 
   return (
-    <mesh ref={meshRef} geometry={geometry}>
+    <mesh
+      ref={meshRef}
+      geometry={geometry}
+      onPointerMove={(e) => {
+        e.stopPropagation();
+        const point = e.point;
+
+        let angle = Math.atan2(point.z, point.x);
+        if (angle < 0) angle += Math.PI * 2;
+
+        for (const range of ranges) {
+          if (angle >= range.start && angle < range.end) {
+            setHoveredCategory({
+              ...range,
+              percentage: totalMinutes
+                ? ((range.minutes / totalMinutes) * 100).toFixed(1)
+                : 0,
+            });
+            return;
+          }
+        }
+      }}
+      onPointerOut={() => setHoveredCategory(null)}
+    >
       <meshStandardMaterial
         vertexColors
-        roughness={0.7}
-        metalness={0.1}
-        emissive="#111111"
-        emissiveIntensity={0.15}
+        roughness={0.6}
+        metalness={0.15}
       />
     </mesh>
   );
@@ -148,62 +155,40 @@ function ColoredSphere({ data, hoveredCategory, setHoveredCategory }) {
 
 export default function ThreeSphere({ data }) {
   const [hovered, setHovered] = useState(null);
-  const [ready, setReady] = useState(false);
-  const [minTimePassed, setMinTimePassed] = useState(false);
-  const canvasKey = useMemo(() => JSON.stringify(data), [data]);
-
-  // Always show loader for at least 2s, or until ready
-  useEffect(() => {
-    setReady(false);
-    setMinTimePassed(false);
-    let didCancel = false;
-    const minTimer = setTimeout(() => {
-      if (!didCancel) setMinTimePassed(true);
-    }, 2000);
-    // Simulate render complete after 400ms (replace with onCreated for real readiness)
-    const fakeReady = setTimeout(() => {
-      if (!didCancel) setReady(true);
-    }, 400);
-    return () => {
-      didCancel = true;
-      clearTimeout(minTimer);
-      clearTimeout(fakeReady);
-    };
-  }, [data]);
-
-  const showSphere = ready && minTimePassed;
 
   return (
-    <div className="relative h-80 w-full rounded-2xl overflow-hidden bg-black">
-      {!showSphere && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10 bg-black/80">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2" />
-          <span className="text-white text-sm">Loading visualization...</span>
-        </div>
-      )}
-      {showSphere && (
-        <Canvas key={canvasKey} camera={{ position: [0, 7, 4], fov: 40 }}>
-          <ambientLight intensity={1.4} />
-          <directionalLight position={[5, 5, 5]} intensity={1.2} />
-          <directionalLight position={[-5, -3, -5]} intensity={0.6} />
-          <OrbitControls enableZoom={false} enablePan={false} />
-          <ColoredSphere
-            data={data}
-            hoveredCategory={hovered}
-            setHoveredCategory={setHovered}
-          />
-        </Canvas>
-      )}
-      {hovered && showSphere && (
-        <div
-          className="absolute w-50 bottom-8 left-1/2 -translate-x-1/2
-                      bg-zinc-900/80 backdrop-blur-xl
-                      border border-zinc-700
-                      px-6 py-4 rounded-2xl
-                      shadow-[0_0_40px_rgba(0,0,0,0.6)]
-                      text-white
-                      animate-fadeIn"
-        >
+    <div className="relative h-full min-h-[450px] w-full rounded-2xl overflow-hidden bg-black">
+      <Canvas
+        frameloop="demand"   // ✅ still no lag
+        camera={{ position: [0, 10, 5], fov: 35 }}
+        gl={{ antialias: true }}
+      >
+        <ambientLight intensity={1.2} />
+        <directionalLight position={[5, 5, 5]} intensity={1.1} />
+        <directionalLight position={[-5, -3, -5]} intensity={0.4} />
+
+        {/* ✅ Rotation restored */}
+        <OrbitControls
+          enableZoom={false}
+          enablePan={false}
+          enableDamping
+          dampingFactor={0.08}
+          onChange={() => {}}
+        />
+
+        <ColoredSphere
+          data={data}
+          hoveredCategory={hovered}
+          setHoveredCategory={setHovered}
+        />
+      </Canvas>
+
+      {hovered && (
+        <div className="absolute bottom-8 w-[200px] left-1/2 -translate-x-1/2
+                        bg-zinc-900/80 backdrop-blur-xl
+                        border border-zinc-700
+                        px-6 py-4 rounded-2xl
+                        shadow-lg text-white">
           <div className="flex items-center gap-3 mb-2">
             <div
               className="w-3 h-3 rounded-full"
@@ -211,7 +196,9 @@ export default function ThreeSphere({ data }) {
             />
             <span className="font-semibold text-lg">{hovered.cat}</span>
           </div>
-          <div className="text-sm text-zinc-400">{hovered.minutes} minutes</div>
+          <div className="text-sm text-zinc-400">
+            {hovered.minutes} minutes
+          </div>
           <div className="text-sm text-zinc-400">
             {hovered.percentage}% of total
           </div>
