@@ -15,6 +15,7 @@ import {
 import api from "../api/axiosInstance";
 import ThreeSphere from "./ThreeSphere";
 import AnalyticsBarChart from "./AnalyticsBarChart";
+import AnalyticsLineChart from "./AnalyticsLineChart";
 import { useNavigate } from "react-router-dom";
 
 // Helper to format minutes into "2h 30m"
@@ -34,7 +35,7 @@ const StatCard = ({ title, value, subtext, icon: Icon, colorClass, delay }) => (
     className="relative overflow-hidden bg-card border border-border p-6 rounded-2xl shadow-lg group hover:border-primary/50 transition-colors"
   >
     <div
-      className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity ${colorClass}`}
+      className={`absolute top-0 right-0 p-4 opacity-30 group-hover:opacity-50 transition-opacity ${colorClass}`}
     >
       <Icon className="w-16 h-16" />
     </div>
@@ -43,7 +44,7 @@ const StatCard = ({ title, value, subtext, icon: Icon, colorClass, delay }) => (
         <Icon className="w-5 h-5" />
         <span className="text-sm font-medium">{title}</span>
       </div>
-      <h3 className="text-3xl font-bold text-foreground tracking-tight">
+      <h3 className="text-3xl font-semibold text-foreground tracking-tight">
         {value}
       </h3>
       {subtext && (
@@ -334,15 +335,9 @@ export default function Analytics() {
       {/* --- BAR CHART --- */}
       <AnalyticsBarChart chartData={stats?.chartData} dayOptions={dayOptions} />
 
-      {/* --- TABLE --- */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="bg-card border border-border rounded-3xl p-6 shadow-md"
-      >
-        {/* table content unchanged */}
-      </motion.div>
+      {/* --- LINE CHART --- */}
+      <AnalyticsLineChart chartData={stats?.chartData} />
+
     </div>
   );
 }
