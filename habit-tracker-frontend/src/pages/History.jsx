@@ -1,27 +1,27 @@
 import React, { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { 
-  format, 
-  startOfMonth, 
-  endOfMonth, 
-  startOfWeek, 
-  endOfWeek, 
-  eachDayOfInterval, 
-  isSameMonth, 
-  isSameDay, 
-  addMonths, 
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  isSameMonth,
+  isSameDay,
+  addMonths,
   subMonths,
-  parseISO 
+  parseISO,
 } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Calendar as CalendarIcon, 
-  Clock, 
-  Trash2, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+  Clock,
+  Trash2,
   AlertCircle,
-  Filter
+  Filter,
 } from "lucide-react";
 import api from "../api/axiosInstance";
 
@@ -31,11 +31,16 @@ const CATEGORIES = ["All", "Work", "Study", "Exercise", "Break", "Other"];
 // Helper for category colors
 const getCategoryColor = (cat) => {
   switch (cat) {
-    case "Work": return "bg-teal-500/20 text-teal-400 border-teal-500/50";
-    case "Study": return "bg-blue-500/20 text-blue-400 border-blue-500/50";
-    case "Exercise": return "bg-orange-500/20 text-orange-400 border-orange-500/50";
-    case "Break": return "bg-pink-500/20 text-pink-400 border-pink-500/50";
-    default: return "bg-gray-500/20 text-gray-400 border-gray-500/50";
+    case "Work":
+      return "bg-teal-500/20 text-teal-400 border-teal-500/50";
+    case "Study":
+      return "bg-blue-500/20 text-blue-400 border-blue-500/50";
+    case "Exercise":
+      return "bg-orange-500/20 text-orange-400 border-orange-500/50";
+    case "Break":
+      return "bg-pink-500/20 text-pink-400 border-pink-500/50";
+    default:
+      return "bg-gray-500/20 text-gray-400 border-gray-500/50";
   }
 };
 
@@ -47,18 +52,18 @@ export default function History() {
 
   // 1. Fetch ALL activities
   const { data: allActivities, isLoading } = useQuery({
-    queryKey: ['activities-history'],
+    queryKey: ["activities-history"],
     queryFn: async () => {
       // We fetch all and filter client-side for instant UI updates
-      const res = await api.get('/activities');
+      const res = await api.get("/activities");
       return res.data.data;
-    }
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/activities/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries(['activities-history']);
+      queryClient.invalidateQueries(["activities-history"]);
     },
   });
 
@@ -67,7 +72,7 @@ export default function History() {
   const filteredActivities = useMemo(() => {
     if (!allActivities) return [];
     if (selectedCategory === "All") return allActivities;
-    return allActivities.filter(item => item.category === selectedCategory);
+    return allActivities.filter((item) => item.category === selectedCategory);
   }, [allActivities, selectedCategory]);
 
   // Calendar Helpers
@@ -81,20 +86,30 @@ export default function History() {
   const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
 
   // Get logs specific to the Selected Date AND Selected Category
-  const currentDayLogs = filteredActivities.filter(activity => 
-    isSameDay(parseISO(activity.createdAt), selectedDate)
-  );
+  const currentDayLogs = filteredActivities.filter((activity) => {
+    // Always compare in local system time
+    const created = parseISO(activity.createdAt);
+    const localCreated = new Date(created.getFullYear(), created.getMonth(), created.getDate());
+    const localSelected = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    return isSameDay(localCreated, localSelected);
+  });
 
   // Check if a day has activity (respecting the current category filter)
   const hasActivity = (day) => {
-    return filteredActivities.some(activity => isSameDay(parseISO(activity.createdAt), day));
+    return filteredActivities.some((activity) => {
+      const created = parseISO(activity.createdAt);
+      const localCreated = new Date(created.getFullYear(), created.getMonth(), created.getDate());
+      const localDay = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+      return isSameDay(localCreated, localDay);
+    });
   };
+
+  console.log(allActivities, selectedDate);
 
   return (
     <div className="h-full flex flex-col lg:flex-row gap-6 p-1">
       {/* --- LEFT: CALENDAR & FILTERS --- */}
       <div className="flex-1 flex flex-col h-fit gap-6">
-        
         {/* 1. Calendar Card */}
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
@@ -103,18 +118,27 @@ export default function History() {
               {format(currentMonth, "MMMM yyyy")}
             </h2>
             <div className="flex gap-2">
-              <button onClick={prevMonth} className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground">
+              <button
+                onClick={prevMonth}
+                className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+              >
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <button onClick={nextMonth} className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground">
+              <button
+                onClick={nextMonth}
+                className="p-2 hover:bg-secondary rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+              >
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
           </div>
 
           <div className="grid grid-cols-7 mb-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <div
+                key={day}
+                className="text-center text-xs font-medium text-muted-foreground py-2"
+              >
                 {day}
               </div>
             ))}
@@ -148,31 +172,34 @@ export default function History() {
 
         {/* 2. Category Filter (Added Below Calendar) */}
         <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
-           <div className="flex items-center gap-2 mb-3 text-muted-foreground">
-              <Filter className="w-4 h-4" />
-              <span className="text-xs font-semibold uppercase tracking-wider">Filter by Category</span>
-           </div>
-           
-           <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map(cat => {
-                const isActive = selectedCategory === cat;
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`
+          <div className="flex items-center gap-2 mb-3 text-muted-foreground">
+            <Filter className="w-4 h-4" />
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              Filter by Category
+            </span>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((cat) => {
+              const isActive = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`
                       px-3 py-1.5 rounded-full text-xs font-medium border transition-all
-                      ${isActive 
-                        ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20" 
-                        : "bg-secondary/50 text-muted-foreground border-transparent hover:border-primary/30 hover:text-foreground"
+                      ${
+                        isActive
+                          ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20"
+                          : "bg-secondary/50 text-muted-foreground border-transparent hover:border-primary/30 hover:text-foreground"
                       }
                     `}
-                  >
-                    {cat}
-                  </button>
-                )
-              })}
-           </div>
+                >
+                  {cat}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -190,7 +217,9 @@ export default function History() {
         <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
           <AnimatePresence mode="popLayout">
             {isLoading ? (
-              <p className="text-center text-muted-foreground py-8">Loading history...</p>
+              <p className="text-center text-muted-foreground py-8">
+                Loading history...
+              </p>
             ) : currentDayLogs.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 text-muted-foreground/50">
                 <AlertCircle className="w-10 h-10 mb-2 opacity-20" />
@@ -207,9 +236,13 @@ export default function History() {
                   className="group bg-secondary/20 border border-border/50 p-3 rounded-xl flex justify-between items-center hover:bg-secondary/40 transition-colors"
                 >
                   <div>
-                    <h4 className="font-medium text-foreground text-sm">{activity.activityName}</h4>
+                    <h4 className="font-medium text-foreground text-sm">
+                      {activity.activityName}
+                    </h4>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full border ${getCategoryColor(activity.category)}`}>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full border ${getCategoryColor(activity.category)}`}
+                      >
                         {activity.category}
                       </span>
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -217,7 +250,7 @@ export default function History() {
                       </span>
                     </div>
                   </div>
-                  
+
                   <button
                     onClick={() => deleteMutation.mutate(activity._id)}
                     className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"

@@ -59,7 +59,6 @@ const StatCard = ({ title, value, subtext, icon: Icon, colorClass, delay }) => (
 export default function Analytics() {
   // State for selected day/week
   const [selected, setSelected] = useState("Weekly");
-  const navigate = useNavigate();
   const { data: rawData, isLoading } = useQuery({
     queryKey: ["analytics"],
     queryFn: async () => {
@@ -73,43 +72,35 @@ export default function Analytics() {
     if (!rawData) return null;
 
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-    // 1. Prepare Chart Data
-    const daysMap = {};
     let totalMinutes = 0;
     let totalSessions = 0;
     const categoryTotals = {};
     let bestDay = { name: "-", minutes: 0 };
 
-    rawData.forEach((item) => {
-      // Backend returns _id.day as 1-7 (Sun-Sat)
-      const dayIndex = item._id.day - 1;
-      const category = item._id.category;
-      const duration = item.totalDuration;
-
-      // Aggregates for Chart
-      if (!daysMap[dayIndex]) {
-        daysMap[dayIndex] = {
-          dayLabel: dayNames[dayIndex],
-          categories: {},
-          totalDayMinutes: 0,
-        };
-      }
-      daysMap[dayIndex].categories[category] = duration;
-      daysMap[dayIndex].totalDayMinutes += duration;
-
-      // Aggregates for Totals
-      totalMinutes += duration;
-      totalSessions += 1; // This is actually groups, exact session count might need raw logs, but this is a good approximation for groups
-
-      // Aggregates for Top Category
-      categoryTotals[category] = (categoryTotals[category] || 0) + duration;
+    // Build chartData from backend's date field
+    const chartData = rawData.map((item) => {
+      const d = new Date(item.date);
+      const dayLabel = item.dayLabel || dayNames[d.getDay()];
+      const dateLabel = `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
+      // For UI: dayLabel (Sun), dateLabel (15/02), fullDate (YYYY-MM-DD)
+      totalMinutes += item.totalDayMinutes;
+      Object.entries(item.categories).forEach(([cat, min]) => {
+        categoryTotals[cat] = (categoryTotals[cat] || 0) + min;
+        totalSessions += 1;
+      });
+      return {
+        dayLabel,
+        dateLabel,
+        fullDate: item.date,
+        categories: item.categories,
+        totalDayMinutes: item.totalDayMinutes,
+      };
     });
 
     // Calculate Best Day
-    Object.values(daysMap).forEach((day) => {
+    chartData.forEach((day) => {
       if (day.totalDayMinutes > bestDay.minutes) {
-        bestDay = { name: day.dayLabel, minutes: day.totalDayMinutes };
+        bestDay = { name: `${day.dayLabel} (${day.dateLabel})`, minutes: day.totalDayMinutes };
       }
     });
 
@@ -117,26 +108,20 @@ export default function Analytics() {
     const sortedCategories = Object.entries(categoryTotals).sort(
       ([, a], [, b]) => b - a,
     );
-
     const topCategory =
       sortedCategories.length > 0
         ? { name: sortedCategories[0][0], minutes: sortedCategories[0][1] }
         : { name: "-", minutes: 0 };
 
-    const chartData = Object.values(daysMap).sort((a, b) => {
-      // Simple sort by day index (need to map back if mixed, but usually fine)
-      return dayNames.indexOf(a.dayLabel) - dayNames.indexOf(b.dayLabel);
-    });
-
     return {
       chartData,
       totalMinutes,
-      totalSessions, // Note: This is count of unique (day, cat) pairs. For exact "log counts", backend update is better.
+      totalSessions,
       categoryTotals,
       topCategory,
       bestDay,
       avgSession:
-        totalSessions > 0 ? Math.round(totalMinutes / totalSessions) : 0, // Rough estimate
+        totalSessions > 0 ? Math.round(totalMinutes / totalSessions) : 0,
     };
   }, [rawData]);
 
@@ -153,27 +138,27 @@ export default function Analytics() {
     );
   }
 
-  // Prepare day options with dates, starting from last Saturday to today
-  const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const today = new Date();
-  // Build last 7 days ending with today
+  // Build dayOptions: last 7 days ending with today, ordered left-to-right oldest-to-today
   const dayOptions = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const dayLabel = dayNames[d.getDay()];
-    const dateLabel = `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}`;
-    dayOptions.push({
-      key: `${dayLabel}-${dateLabel}`,
-      label: `${dayLabel} (${dateLabel})`,
-      rawDay: dayLabel,
-      date: d,
+  if (stats?.chartData && stats.chartData.length >= 1) {
+    // Use backend's chartData order (oldest to newest)
+    stats.chartData.forEach((day) => {
+      dayOptions.push({
+        key: day.fullDate,
+        label: `${day.dayLabel} (${day.dateLabel})`,
+        fullDate: day.fullDate,
+        dayLabel: day.dayLabel,
+        dateLabel: day.dateLabel,
+        hasData: Object.keys(day.categories).length > 0,
+      });
     });
   }
   dayOptions.push({ key: "Weekly", label: "Weekly", rawDay: "Weekly" });
 
-  // Filtered data for ThreeSphere
+  // Filtered data for ThreeSphere and right portion
   let filteredData = null;
+  let showThreeSphere = true;
+  let selectedDayData = null;
   if (stats?.chartData) {
     if (selected === "Weekly") {
       // Cumulative for all 7 days
@@ -186,21 +171,24 @@ export default function Analytics() {
         totalDayMinutes += day.totalDayMinutes;
       });
       filteredData = { categories, totalDayMinutes };
+      showThreeSphere = Object.keys(categories).length > 0;
+      selectedDayData = null;
     } else {
-      // Find selected day by key
-      const selectedDayObj = dayOptions.find((opt) => opt.key === selected);
-      if (selectedDayObj) {
-        const day = stats.chartData.find(
-          (d) => d.dayLabel === selectedDayObj.rawDay,
-        );
-        filteredData = day
-          ? { categories: day.categories, totalDayMinutes: day.totalDayMinutes }
-          : null;
+      // Find selected day by key (fullDate)
+      const day = stats.chartData.find((d) => d.fullDate === selected);
+      if (day && Object.keys(day.categories).length > 0) {
+        filteredData = { categories: day.categories, totalDayMinutes: day.totalDayMinutes };
+        showThreeSphere = true;
+        selectedDayData = day;
       } else {
         filteredData = null;
+        showThreeSphere = false;
+        selectedDayData = null;
       }
     }
   }
+
+  console.log(rawData)
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-10">
@@ -269,7 +257,7 @@ export default function Analytics() {
             {dayOptions.map((opt) => (
               <button
                 key={opt.key}
-                className={`px-3 py-1 rounded-full border text-sm font-medium transition-colors ${
+                className={`px-3 py-1 cursor-pointer rounded-full border text-sm font-medium transition-colors ${
                   selected === opt.key
                     ? "bg-primary text-white border-primary"
                     : "bg-secondary text-foreground border-border hover:bg-primary/10"
@@ -282,7 +270,7 @@ export default function Analytics() {
           </div>
 
           <div className="flex-1 min-h-[400px] relative bg-secondary/10 rounded-2xl overflow-hidden">
-            {filteredData ? (
+            {showThreeSphere ? (
               <ThreeSphere data={filteredData} />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground opacity-50">
@@ -315,6 +303,7 @@ export default function Analytics() {
             dayOptions={dayOptions}
             stats={stats}
             formatTime={formatTime}
+            selectedDayData={selectedDayData}
           />
 
           <div className="mt-6 pt-6 border-t border-border">
@@ -342,7 +331,7 @@ export default function Analytics() {
   );
 }
 
-function CategoryBreakdown({ selected, dayOptions, stats, formatTime }) {
+function CategoryBreakdown({ selected, dayOptions, stats, formatTime, selectedDayData }) {
   // Compute filtered category totals
   let categories = {};
   let total = 0;
@@ -350,19 +339,9 @@ function CategoryBreakdown({ selected, dayOptions, stats, formatTime }) {
   if (selected === "Weekly") {
     categories = stats?.categoryTotals || {};
     total = stats?.totalMinutes || 0;
-  } else {
-    const selectedDayObj = dayOptions.find((opt) => opt.key === selected);
-
-    if (selectedDayObj && stats?.chartData) {
-      const day = stats.chartData.find(
-        (d) => d.dayLabel === selectedDayObj.rawDay,
-      );
-
-      if (day) {
-        categories = day.categories || {};
-        total = day.totalDayMinutes || 0;
-      }
-    }
+  } else if (selectedDayData) {
+    categories = selectedDayData.categories || {};
+    total = selectedDayData.totalDayMinutes || 0;
   }
 
   const colors = {

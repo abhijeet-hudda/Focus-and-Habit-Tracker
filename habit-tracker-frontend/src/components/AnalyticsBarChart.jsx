@@ -235,7 +235,6 @@ export default function AnalyticsBarChart({ chartData = [] }) {
                               }}
                               whileHover={{
                                 opacity: 0.8,
-                                scale: 1.02,
                                 transition: { duration: 0.2 },
                               }}
                             >
@@ -253,13 +252,7 @@ export default function AnalyticsBarChart({ chartData = [] }) {
                       {/* Day label - centered under the day group */}
                       <div
                         className=" absolute top-[102%] left-1/2 -translate-x-1/2 w-auto text-xs text-gray-500 font-medium whitespace-nowrap"
-                        style={
-                          {
-                            //   top: chartAreaHeight + 5,
-                            //   left: "50%",
-                            //   transform: "translateX(-50%)",
-                          }
-                        }
+                        
                       >
                         {day.label}
                       </div>
