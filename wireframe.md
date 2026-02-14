@@ -1,4 +1,3 @@
-
 # 🎯 Focus & Habit Tracker
 ## UI Wireframe & Design Planning Reference
 
@@ -18,7 +17,7 @@ flowchart TD
     Signup --> Login
     Login --> Auth{Verify Credentials}
     
-    Auth -- Success --> Dash[Dashboard (Daily Log)]
+    Auth -- Success --> Dash[Dashboard]
     Auth -- Fail --> Error[Show Error Toast]
 
     subgraph Protected App Shell
@@ -28,9 +27,6 @@ flowchart TD
 
     Dash --> Logout[Logout Action]
     Logout --> Login
-
-```
-
 ---
 
 ## 2. 🔐 Authentication & Data Lifecycle
