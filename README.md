@@ -9,15 +9,15 @@
 
 ```mermaid
 flowchart TD
-	A[Landing Page] --> B[Sign Up / Login]
-	B --> C[Dashboard (Daily Log Section)]
-	C --> D[History View]
-	D --> E[Analytics View (Three.js Visualization)]
-	subgraph Protected Routes
-		C
-		D
-		E
-	end
+	 A[Landing Page] --> B[Sign Up / Login]
+	 B --> C[Dashboard]
+	 C --> D[History]
+	 D --> E[Analytics]
+	 %% Protected routes
+	 C:::protected
+	 D:::protected
+	 E:::protected
+	 classDef protected fill:#e0e7ef,stroke:#3b82f6,stroke-width:2;
 ```
 
 - Smooth navigation, protected routes, and micro-product structure.
@@ -46,15 +46,15 @@ flowchart TD
 #### Login & Signup Flow
 ```mermaid
 flowchart TD
-	L[Login Page] --> S[Signup Page]
-	S --> D[Dashboard]
-	D --> H[History View]
-	H --> A[Analytics View]
-	subgraph Main Navigation
-		D
-		H
-		A
-	end
+		L[Login] --> S[Signup]
+		S --> D[Dashboard]
+		D --> H[History]
+		H --> A[Analytics]
+		%% Main Navigation
+		D:::nav
+		H:::nav
+		A:::nav
+		classDef nav fill:#e0e7ef,stroke:#3b82f6,stroke-width:2;
 ```
 - Minimal dark theme, smooth fade-in, validation errors below inputs.
 
@@ -77,29 +77,29 @@ flowchart TD
 #### Dashboard & Activity Flow
 ```mermaid
 flowchart TD
-	DA[Dashboard] --> AA[Add Activity]
-	AA --> TL[Today's Logs]
-	TL --> H[History View]
-	H --> A[Analytics View]
+		DA[Dashboard] --> AA[Add Activity]
+		AA --> TL[Today's Logs]
+		TL --> H[History]
+		H --> A[Analytics]
 ```
 - Smooth list animation, instant UI update, color badges.
 
 #### History Calendar Flow
 ```mermaid
 flowchart TD
-	MC[Monthly Calendar] --> CD[Clicked Date]
-	CD --> ED[Entries Display]
-	ED --> H[History View]
-	H --> A[Analytics View]
+		MC[Monthly Calendar] --> CD[Clicked Date]
+		CD --> ED[Entries Display]
+		ED --> H[History]
+		H --> A[Analytics]
 ```
 - Click animation, expand/collapse logs, highlight days.
 
 #### Analytics Visualization Flow
 ```mermaid
 flowchart TD
-	WO[Weekly Overview] --> BG[Bar Graph Canvas]
-	BG --> D[Days]
-	D --> C[Category Colors]
+		WO[Weekly Overview] --> BG[Bar Graph Canvas]
+		BG --> D[Days]
+		D --> C[Category Colors]
 ```
 - Bars represent total duration, colors for category, animated upward.
 
