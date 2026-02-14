@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 1. Double check this matches your backend port and version
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v2';
+const API_URL = import.meta.env.VITE_API_URL || 'https://focus-and-habit-tracker.onrender.com';
 
 const api = axios.create({
   baseURL: API_URL,

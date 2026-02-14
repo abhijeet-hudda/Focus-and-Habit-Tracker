@@ -334,16 +334,8 @@ export default function Dashboard() {
               <AnimatePresence mode="popLayout">
                 {isLoading ? (
                   <div className="h-full flex flex-col items-center justify-center">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
-                    >
-                      <Loader className="w-8 h-8 text-primary mb-2" />
-                    </motion.div>
+                    
+                      <Loader className="w-8 h-8 text-primary mb-2 animate-spin" />
                     <p className="text-sm text-muted-foreground mt-2">
                       Loading activities...
                     </p>
