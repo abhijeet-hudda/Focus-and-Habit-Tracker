@@ -27,6 +27,9 @@ flowchart TD
 
     Dash --> Logout[Logout Action]
     Logout --> Login
+
+```markdown
+
 ---
 
 ## 2. 🔐 Authentication & Data Lifecycle
