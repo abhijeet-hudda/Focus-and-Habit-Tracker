@@ -27,8 +27,7 @@ flowchart TD
 
     Dash --> Logout[Logout Action]
     Logout --> Login
-
-```markdown
+```
 
 ---
 
@@ -48,6 +47,7 @@ sequenceDiagram
     User->>FE: Enters Email & Password
     FE->>BE: POST /api/auth/login
     BE->>DB: Find User & Compare Hash
+
     alt Invalid Credentials
         DB-->>BE: null
         BE-->>FE: 401 Unauthorized
@@ -59,7 +59,6 @@ sequenceDiagram
         FE->>FE: Update Global Auth State
         FE->>User: Redirect to Dashboard
     end
-
 ```
 
 ---
@@ -86,7 +85,6 @@ sequenceDiagram
 |                                          |
 |    Already have an account? Login        |
 +------------------------------------------+
-
 ```
 
 #### ⚙️ Logic Flow
@@ -99,7 +97,6 @@ flowchart LR
     Submit --> API[POST /signup]
     API --> Success[Toast Notification]
     Success --> Redirect[Go to Login]
-
 ```
 
 ---
@@ -116,7 +113,7 @@ flowchart LR
 |------------------------------------------------------|
 |  Add Activity                                        |
 |  --------------------------------------------------  |
-|  [ Activity Name ] [ Duration (m) ] [ Category ▼ ]   |
+|  [ Activity Name ] [ Duration (m) ] [ Category ▼ ]  |
 |                      ( Add Entry )                   |
 |                                                      |
 |  Today's Logs                                        |
@@ -125,7 +122,6 @@ flowchart LR
 |  🔵 Study - 60 min       [ Delete ]                  |
 |  🟠 Exercise - 45 min    [ Delete ]                  |
 +------------------------------------------------------+
-
 ```
 
 #### ⚙️ Data Flow
@@ -138,7 +134,6 @@ flowchart TD
     
     DB -- Success --> Confirm[Keep UI State]
     DB -- Fail --> Revert[Revert UI & Show Error]
-
 ```
 
 ---
@@ -165,7 +160,6 @@ flowchart TD
 |  🟢 Work - 90 min                                    |
 |  🟠 Exercise - 30 min                                |
 +------------------------------------------------------+
-
 ```
 
 #### ⚙️ Interaction Flow
@@ -177,7 +171,6 @@ flowchart TD
     RenderCal --> UserClick[User Clicks Date]
     UserClick --> Filter[Filter Logs by Date]
     Filter --> Display[Show Daily Summary List]
-
 ```
 
 ---
@@ -197,11 +190,10 @@ flowchart TD
 |        [ Three.js 3D Bar Graph Canvas ]              |
 |          (Bars animate upwards on load)              |
 |                                                      |
-|      Mon   Tue   Wed   Thu   Fri   Sat   Sun       |
+|      Mon   Tue   Wed   Thu   Fri   Sat   Sun         |
 |                                                      |
 |      Total Hours: 32.5   |   Top Category: Work      |
 +------------------------------------------------------+
-
 ```
 
 #### ⚙️ Visualization Logic
@@ -212,14 +204,13 @@ flowchart TD
     Fetch --> Process[Aggregate Data]
     
     subgraph Data Processing
-    Process --> Group[Group by Day]
-    Group --> Sum[Sum Durations]
-    Sum --> Normalize[Normalize 0-1 Scale]
+        Process --> Group[Group by Day]
+        Group --> Sum[Sum Durations]
+        Sum --> Normalize[Normalize 0-1 Scale]
     end
     
     Normalize --> Render[Three.js Canvas]
     Render --> Animate[Animate scale.y 0 -> 1]
-
 ```
 
 ---
@@ -230,19 +221,19 @@ flowchart TD
 
 **Color Palette:**
 
-* **Background:** `#0f172a` (Slate 900)
-* **Card/Surface:** `#1e293b` (Slate 800)
-* **Primary Action:** `#3b82f6` (Blue 500)
-* **Text Main:** `#f8fafc` (Slate 50)
-* **Text Muted:** `#94a3b8` (Slate 400)
+- **Background:** `#0f172a`
+- **Card/Surface:** `#1e293b`
+- **Primary Action:** `#3b82f6`
+- **Text Main:** `#f8fafc`
+- **Text Muted:** `#94a3b8`
 
 **Category Colors:**
 
-* 🟢 **Work:** `#10b981` (Emerald)
-* 🔵 **Study:** `#3b82f6` (Blue)
-* 🟠 **Exercise:** `#f59e0b` (Amber)
-* 🌸 **Break:** `#ec4899` (Pink)
-* ⚪ **Other:** `#64748b` (Slate)
+- 🟢 Work: `#10b981`
+- 🔵 Study: `#3b82f6`
+- 🟠 Exercise: `#f59e0b`
+- 🌸 Break: `#ec4899`
+- ⚪ Other: `#64748b`
 
 ---
 
@@ -250,14 +241,16 @@ flowchart TD
 
 **Objective:** Map raw duration data to 3D bar heights.
 
-1. **Input:** Array of logs from `startOfWeek` to `endOfWeek`.
-2. **Processing:**
-* Group logs by date.
-* Sum `duration` for each date.
-* Find `maxDuration` in the current week.
+1. Input: Logs from `startOfWeek` to `endOfWeek`
+2. Group logs by date
+3. Sum duration per day
+4. Find `maxDuration` of the week
 
+**3D Height Formula:**
 
-3. **Formula for 3D Height:**
+```
+barHeight = (dayDuration / maxDuration) * MAX_BAR_HEIGHT
+```
 
 ---
 
@@ -266,53 +259,26 @@ flowchart TD
 ```text
 frontend/
   src/
-    ├── assets/
-    ├── components/
-    │   ├── Navbar.jsx
-    │   ├── ActivityForm.jsx
-    │   ├── ActivityList.jsx
-    │   ├── CalendarView.jsx
-    │   ├── ThreeBarChart.jsx
-    │   └── ProtectedRoute.jsx
-    ├── pages/
-    │   ├── Login.jsx
-    │   ├── Signup.jsx
-    │   ├── Dashboard.jsx
-    │   ├── History.jsx
-    │   └── Analytics.jsx
-    ├── context/
-    │   └── AuthContext.jsx
-    ├── services/
-    │   └── api.js
-    └── App.jsx
+    components/
+    pages/
+    context/
+    services/
+    App.jsx
 
 backend/
-  ├── config/
-  │   └── db.js
-  ├── controllers/
-  │   ├── authController.js
-  │   └── logController.js
-  ├── models/
-  │   ├── User.js
-  │   └── Log.js
-  ├── routes/
-  │   ├── authRoutes.js
-  │   └── logRoutes.js
-  ├── middleware/
-  │   └── authMiddleware.js
-  └── server.js
-
+  config/
+  controllers/
+  models/
+  routes/
+  middleware/
+  server.js
 ```
 
 ---
 
 ## 7. 🎯 Design Goals Checklist
 
-* [ ] **Structured SaaS product:** Clean separation of concerns.
-* [ ] **Data-driven:** Every UI element reflects real database state.
-* [ ] **Animated & Interactive:** Smooth transitions and 3D elements.
-* [ ] **Production-ready:** Secure auth, validation, and error handling.
-
-```
-
-```
+- [ ] Structured SaaS product
+- [ ] Data-driven UI
+- [ ] Animated & Interactive
+- [ ] Production-ready architecture
