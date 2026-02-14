@@ -1,10 +1,206 @@
-# Focus and Habit Tracker
+# 🎯 Focus & Habit Tracker
+---
+
+## 🖼️ Wireframe & UI Planning Reference
+
+---
+
+### 🧭 User Flow Overview
+
+```mermaid
+flowchart TD
+	A[Landing Page] --> B[Sign Up / Login]
+	B --> C[Dashboard (Daily Log Section)]
+	C --> D[History View]
+	D --> E[Analytics View (Three.js Visualization)]
+	subgraph Protected Routes
+		C
+		D
+		E
+	end
+```
+
+- Smooth navigation, protected routes, and micro-product structure.
+
+---
+
+### 🔐 Authentication Flow
+
+**Pages:**
+- `/signup`
+- `/login`
+- `/dashboard` (protected)
+
+**Flow:**
+1. User lands on Login page.
+2. If new → clicks "Create Account".
+3. After authentication:
+	- JWT stored in httpOnly cookie
+	- Redirect to Dashboard
+4. Protected routes verify token before rendering.
+
+---
+
+### 🖥️ Wireframe Layouts (Low Fidelity)
+
+#### Login & Signup Flow
+```mermaid
+flowchart TD
+	L[Login Page] --> S[Signup Page]
+	S --> D[Dashboard]
+	D --> H[History View]
+	H --> A[Analytics View]
+	subgraph Main Navigation
+		D
+		H
+		A
+	end
+```
+- Minimal dark theme, smooth fade-in, validation errors below inputs.
+
+#### Signup Page
+```
+┌─────────────────────────────┐
+│     Create Account         │
+│────────────────────────────│
+│   [ Name Input ]           │
+│   [ Email Input ]          │
+│   [ Password Input ]       │
+│                           │
+│     ( Register )           │
+│                           │
+│ Already have account? Login│
+└─────────────────────────────┘
+```
+- Real-time validation, password strength indicator, success toast.
+
+#### Dashboard & Activity Flow
+```mermaid
+flowchart TD
+	DA[Dashboard] --> AA[Add Activity]
+	AA --> TL[Today's Logs]
+	TL --> H[History View]
+	H --> A[Analytics View]
+```
+- Smooth list animation, instant UI update, color badges.
+
+#### History Calendar Flow
+```mermaid
+flowchart TD
+	MC[Monthly Calendar] --> CD[Clicked Date]
+	CD --> ED[Entries Display]
+	ED --> H[History View]
+	H --> A[Analytics View]
+```
+- Click animation, expand/collapse logs, highlight days.
+
+#### Analytics Visualization Flow
+```mermaid
+flowchart TD
+	WO[Weekly Overview] --> BG[Bar Graph Canvas]
+	BG --> D[Days]
+	D --> C[Category Colors]
+```
+- Bars represent total duration, colors for category, animated upward.
+
+---
+
+### 🎨 UI Theme Planning
+
+- Dark Productivity UI
+- Color Palette:
+  - Background: #0f172a
+  - Card: #1e293b
+  - Primary: #3b82f6
+  - Work: teal
+  - Study: blue
+  - Exercise: orange
+  - Break: pink
+  - Other: gray
+- Typography: Clean sans-serif, bold headers
+
+---
+
+### 🔄 State & Data Flow
+
+- React Context/Zustand for auth
+- Axios for API
+- Express REST API, JWT, MongoDB
+- User Action → API → DB → UI
+- Analytics → Aggregated Query → Three.js Mapping
+
+---
+
+### 📊 Analytics Calculation Logic
+
+- Weekly analytics: total duration per day, category distribution
+- Group logs by date, sum duration, map to bar heights
+- Animate bars using Three.js
+- Height formula: `barHeight = (duration / maxDurationOfWeek) * MAX_BAR_HEIGHT`
+
+---
+
+### 🏗️ Project Structure
+
+frontend/
+  pages/
+	 Login.jsx
+	 Signup.jsx
+	 Dashboard.jsx
+	 History.jsx
+	 Analytics.jsx
+  components/
+	 Navbar.jsx
+	 ActivityForm.jsx
+	 ActivityList.jsx
+	 CalendarView.jsx
+	 ThreeBarChart.jsx
+
+backend/
+  routes/
+	 auth.routes.js
+	 log.routes.js
+  controllers/
+  models/
+  middleware/
+
+---
+
+### 🚀 Interaction & Animation
+
+- Button hover transitions
+- Smooth add/delete animations
+- Expand history sections
+- Three.js bar animation on load
+- Fade transitions between routes
+
+---
+
+### 📌 Assumptions & Decisions
+
+- Time stored in UTC
+- Weekly analytics starts from Sunday
+- No orbit controls in Three.js
+- JWT stored in httpOnly cookie
+- Fully responsive layout
+
+---
+
+### 🎯 Design Goals
+
+- Structured SaaS product
+- Data-driven, animated, interactive
+- Clean engineering separation
+- Production-ready micro-product
+
+---
 
 A full-stack productivity application to help you track your daily activities, habits, and focus sessions. Built with a modern MERN stack (MongoDB, Express, React, Node.js) and Vite for blazing-fast frontend development.
 
 ---
 
 ## 🚀 Features
+---
 
 - **User Authentication**: Secure registration, login, and JWT-based session management.
 - **Activity Logging**: Track activities by category (Work, Study, Exercise, Break, Other) with duration and timestamps.
@@ -49,6 +245,7 @@ Focus and Habit Tracker/
 ---
 
 ## 🛠️ Tech Stack
+---
 
 - **Frontend**: React, Vite, Tailwind CSS, Framer Motion, date-fns, Axios
 - **Backend**: Node.js, Express, MongoDB, Mongoose, JWT, bcrypt, multer, Cloudinary
@@ -128,12 +325,27 @@ npm run dev
 ---
 
 ## 📦 Deployment
+---
 
 - Both frontend and backend are ready for Vercel deployment. See `vercel.json` in each folder for configuration.
 
 ---
 
 ## 📝 Notes
+
+### Bar Chart Visualization Problem & Solution
+
+**Problem:**
+When using chart libraries, empty spaces appeared in the bar chart if a category was not present for a day. This made the chart visually confusing and inconsistent.
+
+**Solution:**
+- We decided to manually render the bar chart using custom animation and math calculations.
+- Heights of bars are calculated based on activity duration.
+- Each bar is colored according to its category.
+- Bars are positioned correctly for each day, ensuring no empty spaces and a clear, accurate visualization.
+- This approach provides full control over the chart layout and improves user experience.
+
+---
 
 - All dates are stored in MongoDB as UTC. The frontend and backend use JavaScript's `Date` object for all date handling to ensure consistency.
 - Profile images are uploaded to Cloudinary. You must set up a Cloudinary account and provide the credentials in your backend `.env`.
