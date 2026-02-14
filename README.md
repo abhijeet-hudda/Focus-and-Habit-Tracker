@@ -10,8 +10,6 @@ A full-stack productivity application to help you track your daily activities, h
 - **Activity Logging**: Track activities by category (Work, Study, Exercise, Break, Other) with duration and timestamps.
 - **Analytics Dashboard**: Visualize your productivity with weekly analytics, bar/line charts, and best day/category highlights.
 - **Calendar History**: Browse and filter your activity history by date and category.
-- **Profile Management**: Upload and manage your profile image.
-- **Cloud Storage**: Profile images are uploaded to Cloudinary.
 - **Responsive UI**: Modern, mobile-friendly design with smooth animations.
 
 ---
@@ -23,14 +21,18 @@ Focus and Habit Tracker/
 │
 ├── backend/                  # Node.js + Express + MongoDB backend
 │   ├── src/
-│   │   ├── controller/       # Route controllers
-│   │   ├── db/               # Database connection
-│   │   ├── middlewares/      # Auth, multer, etc.
-│   │   ├── models/           # Mongoose models
-│   │   ├── routes/           # Express routes
-│   │   └── utils/            # Utility functions
+│   │   ├── controller/       # Route controllers (activity.controller.js, user.controller.js)
+│   │   ├── db/               # Database connection (db_connect.js)
+│   │   ├── middlewares/      # Auth, multer, etc. (auth.middleware.js, multer.middleware.js)
+│   │   ├── models/           # Mongoose models (activity.model.js, user.models.js)
+│   │   ├── routes/           # Express routes (activity.route.js, user.route.js)
+│   │   ├── utils/            # Utility functions (apiError.utils.js, apiResponse.utils.js, asyncHandler.utils.js)
+│   │   ├── app.js            # Express app setup
+│   │   ├── constant.js       # Constants
+│   │   └── index.js          # Entry point
 │   ├── package.json
-│   └── vercel.json
+│   ├── vercel.json
+│   └── public/               # Static/public files
 │
 ├── frontend/                 # React + Vite frontend
 │   ├── src/

@@ -2,7 +2,6 @@ import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.utils.js";
 import { ApiError } from "../utils/apiError.utils.js";
 import { User } from "../models/user.models.js";
-import {uploadOnCloudinary} from "../utils/uploadCloudinary.utils.js"
 import { ApiResponse } from "../utils/apiResponse.utils.js"
 import jwt from "jsonwebtoken";
 
@@ -42,15 +41,15 @@ const userRegister = asyncHandler(async (req, res) => {
 
   const profileImageLocalPath = req.file?.path;
 
-  if (profileImageLocalPath) {
-    const uploadedImage = await uploadOnCloudinary(profileImageLocalPath);
+  // if (profileImageLocalPath) {
+  //   const uploadedImage = await uploadOnCloudinary(profileImageLocalPath);
 
-    if (!uploadedImage?.url) {
-      throw new ApiError(400, "Error while uploading profile image");
-    }
+  //   if (!uploadedImage?.url) {
+  //     throw new ApiError(400, "Error while uploading profile image");
+  //   }
 
-    profileImageUrl = uploadedImage.url;
-  }
+  //   profileImageUrl = uploadedImage.url;
+  // }
 
   const user = await User.create({
     name,
